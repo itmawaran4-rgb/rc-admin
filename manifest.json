@@ -1,6 +1,6 @@
 {
-  "name": "RC Workshop",
-  "short_name": "RC Workshop",
+  "name": "RC service",
+  "short_name": "RC service",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f0f0ee",
