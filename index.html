@@ -903,7 +903,6 @@ textarea.form-control{resize:none}
    Only shown when opened from a MOBILE BROWSER (not desktop, not when
    already installed/running as standalone PWA).
    ═══════════════════════════════════════════════ */
-(function initPWA() {
   // Inject manifest via blob URL (works without a server)
   const manifestData = {
     name: 'RC Workshop',
@@ -1021,7 +1020,6 @@ function triggerPwaInstallCenter() {
   });
 }
 function triggerPwaInstall() { triggerPwaInstallCenter(); }
-function dismissPwaBanner() { dismissPwaCenter(); }
 /* ═══════════════════════════════════════════════
    ✅ FIX 4: BIOMETRIC AUTH (WebAuthn)
    ═══════════════════════════════════════════════ */
