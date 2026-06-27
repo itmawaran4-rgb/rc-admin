@@ -1407,7 +1407,7 @@ let scanCtx = null;
 function loadJsQR(cb) {
   if (jsQRLoaded) { cb(); return; }
   const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+  s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
   s.onload = () => { jsQRLoaded = true; cb(); };
   s.onerror = () => toast(T[lang].error, 'error');
   document.head.appendChild(s);
