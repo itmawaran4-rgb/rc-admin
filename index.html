@@ -939,6 +939,7 @@ if ('serviceWorker' in navigator) {
 
 // باقي كود PWA يبقى كما هو
 // ─── PWA ───
+// ─── PWA (FIXED) ───
 let _pwaPrompt = null;
 let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
 let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
@@ -946,23 +947,16 @@ let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
-function isAndroid() {
-  return /Android/.test(navigator.userAgent);
-}
-function isMobileBrowser() {
-  return isIOS() || isAndroid() || /Mobile/i.test(navigator.userAgent);
-}
 function isInStandaloneMode() {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone === true;
+  return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
 }
 
+// ✅ FIX: يعمل على موبايل وكمبيوتر، ولا يتطلب isMobileBrowser
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _pwaPrompt = e;
-  if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
-    setTimeout(showPwaCenterPrompt, 1500);
-  }
+  // خزّن الحدث واعرض النافذة بعد تحميل الصفحة
 });
 
 window.addEventListener('appinstalled', () => {
@@ -970,43 +964,54 @@ window.addEventListener('appinstalled', () => {
   localStorage.setItem('rcw_pwa_installed', 'true');
   hidePwaCenterPrompt();
   toast('✅ تم تثبيت التطبيق', 'success');
+  _pwaPrompt = null;
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  // iOS
-  if (isIOS() && isMobileBrowser() && !isInStandaloneMode()
+  // iOS: لا يوجد beforeinstallprompt، عرض تعليمات يدوية
+  if (isIOS() && !isInStandaloneMode()
       && !_pwaInstalled && !_pwaDismissed) {
-    setTimeout(showPwaCenterPrompt, 1800);
-  }
-  // تسجيل SW
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    setTimeout(showPwaCenterPrompt, 2000);
   }
 });
 
 function showPwaCenterPrompt() {
-  if (!isMobileBrowser() || _pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
-  const overlay = document.getElementById('pwa-center-overlay');
+  if (_pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
+
+  const overlay    = document.getElementById('pwa-center-overlay');
   const installBtn = document.getElementById('pwac-install-btn');
-  const iosInstr = document.getElementById('pwac-ios-instructions');
+  const iosInstr   = document.getElementById('pwac-ios-instructions');
+
+  if (!overlay) return;
+
   if (isIOS()) {
-    installBtn.style.display = 'none';
-    iosInstr.style.display = 'block';
+    // iOS: زر التثبيت لا يعمل، أظهر التعليمات بدلاً منه
+    if (installBtn) installBtn.style.display = 'none';
+    if (iosInstr)   iosInstr.style.display   = 'block';
   } else {
-    installBtn.style.display = '';
-    iosInstr.style.display = 'none';
+    if (installBtn) installBtn.style.display = '';
+    if (iosInstr)   iosInstr.style.display   = 'none';
+    // إذا لم يصل beforeinstallprompt بعد، أخفِ الزر
+    if (!_pwaPrompt && installBtn) installBtn.style.display = 'none';
   }
+
   overlay.classList.add('show');
 }
+
 function hidePwaCenterPrompt() {
-  document.getElementById('pwa-center-overlay').classList.remove('show');
+  const overlay = document.getElementById('pwa-center-overlay');
+  if (overlay) overlay.classList.remove('show');
 }
+
 function dismissPwaCenter() {
   hidePwaCenterPrompt();
   _pwaDismissed = true;
   localStorage.setItem('rcw_pwa_dismissed', 'true');
-  setTimeout(() => localStorage.removeItem('rcw_pwa_dismissed'), 3*24*60*60*1000);
+  // أعد السماح بالعرض بعد 3 أيام
+  setTimeout(() => localStorage.removeItem('rcw_pwa_dismissed'),
+    3 * 24 * 60 * 60 * 1000);
 }
+
 function triggerPwaInstallCenter() {
   if (!_pwaPrompt) { hidePwaCenterPrompt(); return; }
   _pwaPrompt.prompt();
@@ -1019,7 +1024,10 @@ function triggerPwaInstallCenter() {
     _pwaPrompt = null;
   });
 }
+
+// للتوافق مع الشفرة القديمة
 function triggerPwaInstall() { triggerPwaInstallCenter(); }
+function dismissPwaBanner() { dismissPwaCenter(); }
 /* ═══════════════════════════════════════════════
    ✅ FIX 4: BIOMETRIC AUTH (WebAuthn)
    ═══════════════════════════════════════════════ */
