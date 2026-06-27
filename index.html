@@ -956,7 +956,9 @@ function isInStandaloneMode() {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _pwaPrompt = e;
-  // خزّن الحدث واعرض النافذة بعد تحميل الصفحة
+  if (!_pwaInstalled && !_pwaDismissed && !isInStandaloneMode()) {
+    setTimeout(showPwaCenterPrompt, 2000);
+  }
 });
 
 window.addEventListener('appinstalled', () => {
@@ -1889,12 +1891,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 });
   
-// PWA: إذا كان الحدث قد ضاع — أعد المحاولة بعد ثانيتين
-if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
-  setTimeout(() => {
-    if (_pwaPrompt) showPwaCenterPrompt();
-  }, 2000);
-}
 /* ─── LANG ─── */
 function switchLang(l){
   lang=l; localStorage.setItem('rcw_lang',l); applyLang(l); closeSidebar();
