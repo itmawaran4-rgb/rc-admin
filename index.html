@@ -979,8 +979,15 @@ function isInStandaloneMode() {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _pwaPrompt = e;
+  // اخزّن الحدث فقط، وأظهر النافذة بعد تحميل الصفحة
   if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
-    setTimeout(showPwaCenterPrompt, 1200);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(showPwaCenterPrompt, 1200);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(showPwaCenterPrompt, 1200);
+      });
+    }
   }
 });
 
@@ -1293,11 +1300,26 @@ async function manageBiometric() {
    (or the tab regains focus after being hidden/in background)
    it asks for biometric or the account password before showing data.
    ═══════════════════════════════════════════════ */
-let _appUnlocked = false;          // unlocked for this "session" of having the tab open
+let _appUnlocked = false;
+const UNLOCK_DURATION_MS = 12 * 60 * 60 * 1000; // 12 ساعة
+
+function isUnlockStillValid() {
+  const ts = parseInt(localStorage.getItem('rcw_unlock_ts') || '0');
+  return Date.now() - ts < UNLOCK_DURATION_MS;
+}
+function markUnlocked() {
+  markUnlocked();
+  localStorage.setItem('rcw_unlock_ts', String(Date.now()));
+}
 let _unlockHideTimestamp = null;   // when the tab/app was last hidden
 
 function requireUnlock() {
-  if (!session || !session.center) return; // nothing to unlock, will show login screen anyway
+  if (!session || !session.center) return;
+  // لا تطلب إذا كانت آخر فتحة صحيحة خلال 12 ساعة
+  if (isUnlockStillValid()) {
+    _appUnlocked = true;
+    return;
+  }
   _appUnlocked = false;
   showUnlockScreen();
 }
@@ -1340,7 +1362,7 @@ async function unlockWithBiometric(silent) {
   const ok = await BIO.authenticate();
   if (bioBtn) { bioBtn.disabled = false; updateBioText(); }
   if (ok) {
-    _appUnlocked = true;
+    markUnlocked();
     closeModal('modal-unlock');
   } else if (!silent) {
     toast(T[lang].wrongPw || 'فشل التحقق', 'error');
@@ -1364,7 +1386,7 @@ function doUnlock() {
     document.getElementById('unlock-pw').value = '';
     return;
   }
-  _appUnlocked = true;
+  markUnlocked();
   closeModal('modal-unlock');
 }
 
@@ -1382,12 +1404,13 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _unlockHideTimestamp = Date.now();
   } else if (document.visibilityState === 'visible') {
-    // Only re-lock if we have an active session and we're past the login screen
-    if (session && session.center && document.getElementById('screen-main').classList.contains('active')) {
+  if (session && session.center && document.getElementById('screen-main').classList.contains('active')) {
+    if (!isUnlockStillValid()) {
       _appUnlocked = false;
       requireUnlock();
     }
   }
+}
 });
 window.addEventListener('pageshow', () => {
   if (session && session.center && document.getElementById('screen-main').classList.contains('active') && !_appUnlocked) {
@@ -1899,7 +1922,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     initBiometricUI();
   }
 });
-
+  
+// PWA: إذا كان الحدث قد ضاع — أعد المحاولة بعد ثانيتين
+if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
+  setTimeout(() => {
+    if (_pwaPrompt) showPwaCenterPrompt();
+  }, 2000);
+}
 /* ─── LANG ─── */
 function switchLang(l){
   lang=l; localStorage.setItem('rcw_lang',l); applyLang(l); closeSidebar();
@@ -2048,7 +2077,7 @@ async function doGasLogin() {
     if (data.missingFields && data.missingFields.length > 0) {
       showCompleteInfoModal(data.missingFields);
     } else {
-      _appUnlocked = true; // fresh login counts as unlocked
+      markUnlocked();
       enterMainScreen();
     }
 
@@ -2058,7 +2087,7 @@ async function doGasLogin() {
     if (session && session.username === username && session.password === password) {
       toast('⚠️ وضع غير متصل — تم الدخول من الجلسة المحفوظة', 'error');
       setLoginLoading(false);
-      _appUnlocked = true;
+      markUnlocked();
       enterMainScreen();
     } else {
       showLoginError(t.error || 'تعذّر الاتصال بالخادم');
@@ -2154,7 +2183,7 @@ async function saveCompleteInfo() {
       saveSession({ ...session, center: newCenter });
       closeModal('modal-complete-info');
       toast(t.saved||'تم الحفظ ✓','success');
-      _appUnlocked = true;
+      markUnlocked();
       enterMainScreen();
     } else {
       toast(t.error||'حدث خطأ','error');
@@ -2165,7 +2194,7 @@ async function saveCompleteInfo() {
     saveSession({ ...session, center: newCenter });
     closeModal('modal-complete-info');
     toast('⚠️ تم الحفظ محلياً','success');
-    _appUnlocked = true;
+    markUnlocked();
     enterMainScreen();
   }
 
