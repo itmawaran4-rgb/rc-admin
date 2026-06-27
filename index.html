@@ -1406,6 +1406,7 @@ document.addEventListener('visibilitychange', () => {
   } else if (document.visibilityState === 'visible') {
   if (session && session.center && document.getElementById('screen-main').classList.contains('active')) {
     if (!isUnlockStillValid()) {
+      _appUnlocked = false;
       requireUnlock();
     }
   }
@@ -2086,6 +2087,7 @@ async function doGasLogin() {
     if (session && session.username === username && session.password === password) {
       toast('⚠️ وضع غير متصل — تم الدخول من الجلسة المحفوظة', 'error');
       setLoginLoading(false);
+      markUnlocked();
       enterMainScreen();
     } else {
       showLoginError(t.error || 'تعذّر الاتصال بالخادم');
