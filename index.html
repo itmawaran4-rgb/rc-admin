@@ -959,7 +959,7 @@ window.addEventListener('appinstalled', () => {
 });
 })();
 
-// PWA install prompt state
+// ─── PWA ───
 let _pwaPrompt = null;
 let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
 let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
@@ -971,7 +971,6 @@ function isAndroid() {
   return /Android/.test(navigator.userAgent);
 }
 function isMobileBrowser() {
-  // Only phones/tablets — never desktop
   return (isIOS() || isAndroid() || /Mobile/i.test(navigator.userAgent));
 }
 function isInStandaloneMode() {
@@ -979,23 +978,21 @@ function isInStandaloneMode() {
          window.navigator.standalone === true;
 }
 
-// Capture the install prompt (Android/Chrome)
+// تسجيل Service Worker الحقيقي
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _pwaPrompt = e;
-  // اخزّن الحدث فقط، وأظهر النافذة بعد تحميل الصفحة
   if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(showPwaCenterPrompt, 1200);
-    } else {
-      document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(showPwaCenterPrompt, 1200);
-      });
-    }
+    setTimeout(showPwaCenterPrompt, 1500);
   }
 });
 
-// Detect if already installed
 window.addEventListener('appinstalled', () => {
   _pwaInstalled = true;
   localStorage.setItem('rcw_pwa_installed', 'true');
@@ -1003,17 +1000,20 @@ window.addEventListener('appinstalled', () => {
   toast('✅ تم تثبيت التطبيق', 'success');
 });
 
-/* ── Center-screen install prompt (mobile browser only) ── */
-function showPwaCenterPrompt() {
-  // Never show on desktop, never show if already installed/standalone/dismissed
-  if (!isMobileBrowser() || _pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
+// iOS — لا يوجد beforeinstallprompt
+document.addEventListener('DOMContentLoaded', () => {
+  if (isIOS() && isMobileBrowser() && !isInStandaloneMode() 
+      && !_pwaInstalled && !_pwaDismissed) {
+    setTimeout(showPwaCenterPrompt, 1800);
+  }
+});
 
+function showPwaCenterPrompt() {
+  if (!isMobileBrowser() || _pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
   const overlay = document.getElementById('pwa-center-overlay');
   const installBtn = document.getElementById('pwac-install-btn');
   const iosInstr = document.getElementById('pwac-ios-instructions');
-
   if (isIOS()) {
-    // iOS has no install prompt API — show manual instructions, hide button
     installBtn.style.display = 'none';
     iosInstr.style.display = 'block';
   } else {
@@ -1029,17 +1029,10 @@ function dismissPwaCenter() {
   hidePwaCenterPrompt();
   _pwaDismissed = true;
   localStorage.setItem('rcw_pwa_dismissed', 'true');
-  // Reset dismiss after 3 days so it can ask again later
-  setTimeout(() => {
-    localStorage.removeItem('rcw_pwa_dismissed');
-  }, 3 * 24 * 60 * 60 * 1000);
+  setTimeout(() => localStorage.removeItem('rcw_pwa_dismissed'), 3*24*60*60*1000);
 }
 function triggerPwaInstallCenter() {
-  if (!_pwaPrompt) {
-    // No native prompt available (e.g. Android browser that hasn't fired the event yet)
-    hidePwaCenterPrompt();
-    return;
-  }
+  if (!_pwaPrompt) { hidePwaCenterPrompt(); return; }
   _pwaPrompt.prompt();
   _pwaPrompt.userChoice.then(choice => {
     if (choice.outcome === 'accepted') {
@@ -1050,21 +1043,8 @@ function triggerPwaInstallCenter() {
     _pwaPrompt = null;
   });
 }
-
-// iOS: no beforeinstallprompt event exists, so show the center prompt
-// directly (with manual instructions) shortly after load — mobile browser only.
-document.addEventListener('DOMContentLoaded', () => {
-  if (isIOS() && isMobileBrowser() && !isInStandaloneMode() && !_pwaInstalled && !_pwaDismissed) {
-    setTimeout(showPwaCenterPrompt, 1800);
-  }
-});
-
-// Legacy bottom-banner functions kept (unused by default) in case you want them back.
-function showPwaBanner() { /* superseded by showPwaCenterPrompt() */ }
-function hidePwaBanner() { document.getElementById('pwa-banner').classList.remove('show'); }
 function triggerPwaInstall() { triggerPwaInstallCenter(); }
 function dismissPwaBanner() { dismissPwaCenter(); }
-
 
 /* ═══════════════════════════════════════════════
    ✅ FIX 4: BIOMETRIC AUTH (WebAuthn)
