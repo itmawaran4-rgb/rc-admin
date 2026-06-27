@@ -939,26 +939,6 @@ if ('serviceWorker' in navigator) {
 }
 
 // باقي كود PWA يبقى كما هو
-let _pwaPrompt = null;
-let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
-let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  _pwaPrompt = e;
-  if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
-    setTimeout(showPwaCenterPrompt, 1500);
-  }
-});
-
-window.addEventListener('appinstalled', () => {
-  _pwaInstalled = true;
-  localStorage.setItem('rcw_pwa_installed', 'true');
-  hidePwaCenterPrompt();
-  toast('✅ تم تثبيت التطبيق', 'success');
-});
-})();
-
 // ─── PWA ───
 let _pwaPrompt = null;
 let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
@@ -971,18 +951,11 @@ function isAndroid() {
   return /Android/.test(navigator.userAgent);
 }
 function isMobileBrowser() {
-  return (isIOS() || isAndroid() || /Mobile/i.test(navigator.userAgent));
+  return isIOS() || isAndroid() || /Mobile/i.test(navigator.userAgent);
 }
 function isInStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches ||
          window.navigator.standalone === true;
-}
-
-// تسجيل Service Worker الحقيقي
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -1000,11 +973,15 @@ window.addEventListener('appinstalled', () => {
   toast('✅ تم تثبيت التطبيق', 'success');
 });
 
-// iOS — لا يوجد beforeinstallprompt
 document.addEventListener('DOMContentLoaded', () => {
-  if (isIOS() && isMobileBrowser() && !isInStandaloneMode() 
+  // iOS
+  if (isIOS() && isMobileBrowser() && !isInStandaloneMode()
       && !_pwaInstalled && !_pwaDismissed) {
     setTimeout(showPwaCenterPrompt, 1800);
+  }
+  // تسجيل SW
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 });
 
@@ -1045,7 +1022,6 @@ function triggerPwaInstallCenter() {
 }
 function triggerPwaInstall() { triggerPwaInstallCenter(); }
 function dismissPwaBanner() { dismissPwaCenter(); }
-
 /* ═══════════════════════════════════════════════
    ✅ FIX 4: BIOMETRIC AUTH (WebAuthn)
    ═══════════════════════════════════════════════ */
