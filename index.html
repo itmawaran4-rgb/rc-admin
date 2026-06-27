@@ -1881,7 +1881,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if (session && session.center) {
     enterMainScreen();
     // Refresh center data silently in background
-    setTimeout(refreshCenterDataFromGAS, 1500);
+    refreshCenterDataFromGAS();
     // ✅ FIX 2: always require biometric/password verification on open,
     // even though the username/password don't need to be re-typed.
     requireUnlock();
@@ -2058,73 +2058,19 @@ async function doGasLogin() {
   }
 }
 
-/* ─── Refresh & VALIDATE session from GAS on every app open ─── */
-const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000; // مرة واحدة كل 24 ساعة
-
+/* ─── Refresh center data silently from GAS (on auto-login) ─── */
 async function refreshCenterDataFromGAS() {
   if (!session) return;
-
-  // تحقق هل مر 24 ساعة منذ آخر تحقق
-  const lastCheck = parseInt(localStorage.getItem('rcw_last_check') || '0');
-  const now = Date.now();
-  if (now - lastCheck < REFRESH_INTERVAL_MS) return; // لم يمر يوم بعد
-
   try {
-    const url = `${GAS_URL}?action=login&username=${encodeURIComponent(session.username)}&password=${encodeURIComponent(session.password)}&t=${now}`;
+    const url = `${GAS_URL}?action=login&username=${encodeURIComponent(session.username)}&password=${encodeURIComponent(session.password)}&t=${Date.now()}`;
     const res = await fetch(url);
     const data = await res.json();
-
     if (data.success && data.center) {
-      // ✅ الجلسة لا تزال صالحة — حدّث بيانات المركز
       saveSession({ ...session, center: data.center });
-      localStorage.setItem('rcw_last_check', String(now));
-      applyLang(lang);
+      applyLang(lang); // refresh header with new center name
       renderSidebar();
-    } else if (data.error === 'invalid_credentials') {
-      // ❌ تغير اسم المستخدم أو كلمة المرور — اطلب تسجيل دخول جديد
-      forceRelogin('credentials_changed');
-    } else {
-      // خطأ غير معروف — لا تُخرج المستخدم، فقط سجّل
-      console.warn('GAS refresh error:', data.error);
     }
-  } catch(e) {
-    // لا يوجد إنترنت — لا تُخرج المستخدم، استخدم البيانات المحفوظة
-    console.log('Offline — using cached session');
-  }
-}
-
-function forceRelogin(reason) {
-  // أغلق كل شيء
-  closeModal('modal-unlock');
-  closeSidebar();
-  BIO.clear();
-  saveSession(null);
-  localStorage.removeItem('rcw_unlock_ts');
-  localStorage.removeItem('rcw_last_check');
-  _appUnlocked = false;
-  curCarData = null; curCarId = null; curMaintKey = null;
-
-  // أظهر شاشة الدخول مع رسالة مناسبة
-  show('screen-login');
-  document.getElementById('login-username').value = '';
-  document.getElementById('login-pw').value = '';
-  document.getElementById('login-error').style.display = 'none';
-  document.getElementById('bio-login-btn').style.display = 'none';
-  applyLang(lang);
-
-  // أظهر رسالة توضيحية
-  setTimeout(() => {
-    const msg = reason === 'credentials_changed'
-      ? (lang === 'en' ? '⚠️ Your credentials have changed. Please sign in again.'
-       : lang === 'ku' ? '⚠️ زانیارییەکانت گۆڕدراون. تکایە دووبارە بچۆ ژوورەوە.'
-       : '⚠️ تم تغيير بيانات حسابك. يرجى تسجيل الدخول مجدداً.')
-      : (lang === 'en' ? '⚠️ Session expired. Please sign in again.'
-       : lang === 'ku' ? '⚠️ ماوەی چوونەژوورەوە بەسەرچوو.'
-       : '⚠️ انتهت الجلسة. يرجى تسجيل الدخول مجدداً.');
-    const el = document.getElementById('login-error');
-    el.textContent = msg;
-    el.style.display = '';
-  }, 300);
+  } catch(e) { /* silent fail — use cached data */ }
 }
 
 /* ─── Complete Missing Info Modal ─── */
