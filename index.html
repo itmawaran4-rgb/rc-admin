@@ -366,6 +366,25 @@ textarea.form-control{resize:none}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 .badge-count{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;font-weight:900;margin-inline-start:4px}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ══ FIX 3: CENTER-SCREEN PWA INSTALL PROMPT ══ */
+#pwa-center-overlay{
+  display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px;
+}
+#pwa-center-overlay.show{display:flex;animation:fadeIn .25s ease}
+.pwa-center-card{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:20px;
+  padding:26px 22px;max-width:340px;width:100%;text-align:center;
+  box-shadow:0 16px 50px rgba(0,0,0,.35);
+  animation:pwaPopIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pwaPopIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.pwa-center-icon{font-size:54px;display:block;margin-bottom:10px}
+.pwa-center-title{font-size:17px;font-weight:900;color:var(--text);margin-bottom:6px}
+.pwa-center-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.pwa-center-actions{display:flex;flex-direction:column;gap:9px}
 </style>
 </head>
 <body>
@@ -575,7 +594,7 @@ textarea.form-control{resize:none}
   </div>
 </div>
 
-<!-- ══ PWA INSTALL BANNER ══ -->
+<!-- ══ PWA INSTALL BANNER (bottom, legacy) ══ -->
 <div id="pwa-banner">
   <div class="pwa-banner-inner">
     <div class="pwa-banner-icon">🔧</div>
@@ -591,6 +610,56 @@ textarea.form-control{resize:none}
         اضغط على <span>⬆️ مشاركة</span> ثم اختر <span>إضافة إلى الشاشة الرئيسية</span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ FIX 3: NEW CENTER-SCREEN PWA INSTALL PROMPT (mobile-browser-only) ══ -->
+<div id="pwa-center-overlay">
+  <div class="pwa-center-card">
+    <span class="pwa-center-icon">🔧</span>
+    <div class="pwa-center-title" id="pwac-title">ثبّت التطبيق على هاتفك</div>
+    <div class="pwa-center-sub" id="pwac-sub">للوصول السريع بدون متصفح، وتجربة أسرع وأسهل</div>
+    <div class="pwa-center-actions">
+      <button class="btn-primary btn-teal" id="pwac-install-btn" onclick="triggerPwaInstallCenter()">📲 <span id="pwac-install-txt">تثبيت الآن</span></button>
+      <button class="btn-primary btn-ghost" onclick="dismissPwaCenter()"><span id="pwac-later-txt">ليس الآن</span></button>
+    </div>
+    <!-- iOS specific instructions -->
+    <div class="ios-instructions" id="pwac-ios-instructions" style="display:none;margin-top:14px;text-align:start">
+      اضغط على <span>⬆️ مشاركة</span> ثم اختر <span>إضافة إلى الشاشة الرئيسية</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP UNLOCK SCREEN (FIX 2: re-verify on every app open) ══ -->
+<div class="modal-overlay" id="modal-unlock" style="z-index:400;align-items:center">
+  <div class="modal-sheet" style="border-radius:22px;max-width:360px;text-align:center;padding:30px 24px">
+    <span style="font-size:46px;display:block;margin-bottom:10px">🔒</span>
+    <div class="modal-title" id="unlock-title" style="margin-bottom:4px">مرحباً بعودتك</div>
+    <div class="modal-sub" id="unlock-sub" style="margin-bottom:18px"></div>
+
+    <!-- Biometric quick unlock -->
+    <button class="bio-btn" id="unlock-bio-btn" onclick="unlockWithBiometric()" style="display:none;margin-top:0;margin-bottom:12px">
+      <span class="bio-btn-icon" id="unlock-bio-icon">🔬</span>
+      <span id="unlock-bio-txt">فتح بالبصمة / Face ID</span>
+    </button>
+
+    <div class="form-group" style="text-align:start">
+      <label class="form-label" id="unlock-pw-lbl">كلمة المرور</label>
+      <div style="position:relative">
+        <input class="form-control" id="unlock-pw" type="password" placeholder="••••••"
+               autocomplete="current-password" autocorrect="off" autocapitalize="off" spellcheck="false"
+               style="direction:ltr;text-align:center;font-size:20px;letter-spacing:.15em;padding-inline-end:44px"
+               onkeyup="if(event.key==='Enter')doUnlock()">
+        <button onclick="toggleUnlockPwVisibility()" id="unlock-eye-btn"
+                style="position:absolute;top:50%;inset-inline-end:12px;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1">👁</button>
+      </div>
+    </div>
+    <div id="unlock-error" style="display:none;color:var(--red);font-size:13px;text-align:center;padding:4px 0 8px;font-weight:700"></div>
+    <button class="btn-primary btn-teal" onclick="doUnlock()" id="unlock-btn">🔓 <span id="unlock-btn-txt">فتح</span></button>
+
+    <button onclick="confirmLogoutFromUnlock()" style="background:none;border:none;color:var(--muted);font-size:12.5px;margin-top:16px;cursor:pointer;font-family:inherit;text-decoration:underline">
+      <span id="unlock-switch-account">تسجيل خروج / حساب آخر</span>
+    </button>
   </div>
 </div>
 
@@ -829,7 +898,9 @@ textarea.form-control{resize:none}
 <script>
 
 /* ═══════════════════════════════════════════════
-   ✅ FIX 2: PWA — MANIFEST + INSTALL BANNER
+   ✅ FIX 3 (rewritten): PWA — MANIFEST + CENTER-SCREEN INSTALL PROMPT
+   Only shown when opened from a MOBILE BROWSER (not desktop, not when
+   already installed/running as standalone PWA).
    ═══════════════════════════════════════════════ */
 (function initPWA() {
   // Inject manifest via blob URL (works without a server)
@@ -888,12 +959,27 @@ let _pwaPrompt = null;
 let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
 let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
 
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+function isAndroid() {
+  return /Android/.test(navigator.userAgent);
+}
+function isMobileBrowser() {
+  // Only phones/tablets — never desktop
+  return (isIOS() || isAndroid() || /Mobile/i.test(navigator.userAgent));
+}
+function isInStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+
 // Capture the install prompt (Android/Chrome)
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   _pwaPrompt = e;
-  if (!_pwaInstalled && !_pwaDismissed) {
-    setTimeout(showPwaBanner, 1500);
+  if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
+    setTimeout(showPwaCenterPrompt, 1200);
   }
 });
 
@@ -901,68 +987,71 @@ window.addEventListener('beforeinstallprompt', (e) => {
 window.addEventListener('appinstalled', () => {
   _pwaInstalled = true;
   localStorage.setItem('rcw_pwa_installed', 'true');
-  hidePwaBanner();
+  hidePwaCenterPrompt();
   toast('✅ تم تثبيت التطبيق', 'success');
 });
 
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-}
-function isInStandaloneMode() {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         window.navigator.standalone === true;
-}
+/* ── Center-screen install prompt (mobile browser only) ── */
+function showPwaCenterPrompt() {
+  // Never show on desktop, never show if already installed/standalone/dismissed
+  if (!isMobileBrowser() || _pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
 
-function showPwaBanner() {
-  if (_pwaInstalled || _pwaDismissed || isInStandaloneMode()) return;
-  const banner = document.getElementById('pwa-banner');
-  const iosInstr = document.getElementById('ios-instructions');
-  const installBtn = document.getElementById('pwa-install-btn');
+  const overlay = document.getElementById('pwa-center-overlay');
+  const installBtn = document.getElementById('pwac-install-btn');
+  const iosInstr = document.getElementById('pwac-ios-instructions');
 
   if (isIOS()) {
-    // iOS: show manual instructions
+    // iOS has no install prompt API — show manual instructions, hide button
     installBtn.style.display = 'none';
     iosInstr.style.display = 'block';
   } else {
     installBtn.style.display = '';
     iosInstr.style.display = 'none';
   }
-  banner.classList.add('show');
+  overlay.classList.add('show');
 }
-
-function hidePwaBanner() {
-  document.getElementById('pwa-banner').classList.remove('show');
+function hidePwaCenterPrompt() {
+  document.getElementById('pwa-center-overlay').classList.remove('show');
 }
-
-function triggerPwaInstall() {
-  if (!_pwaPrompt) return;
+function dismissPwaCenter() {
+  hidePwaCenterPrompt();
+  _pwaDismissed = true;
+  localStorage.setItem('rcw_pwa_dismissed', 'true');
+  // Reset dismiss after 3 days so it can ask again later
+  setTimeout(() => {
+    localStorage.removeItem('rcw_pwa_dismissed');
+  }, 3 * 24 * 60 * 60 * 1000);
+}
+function triggerPwaInstallCenter() {
+  if (!_pwaPrompt) {
+    // No native prompt available (e.g. Android browser that hasn't fired the event yet)
+    hidePwaCenterPrompt();
+    return;
+  }
   _pwaPrompt.prompt();
   _pwaPrompt.userChoice.then(choice => {
     if (choice.outcome === 'accepted') {
       _pwaInstalled = true;
       localStorage.setItem('rcw_pwa_installed', 'true');
     }
-    hidePwaBanner();
+    hidePwaCenterPrompt();
     _pwaPrompt = null;
   });
 }
 
-function dismissPwaBanner() {
-  hidePwaBanner();
-  _pwaDismissed = true;
-  localStorage.setItem('rcw_pwa_dismissed', 'true');
-  // Reset dismiss after 3 days
-  setTimeout(() => {
-    localStorage.removeItem('rcw_pwa_dismissed');
-  }, 3 * 24 * 60 * 60 * 1000);
-}
-
-// Show PWA banner on first visit for iOS (no beforeinstallprompt on iOS)
+// iOS: no beforeinstallprompt event exists, so show the center prompt
+// directly (with manual instructions) shortly after load — mobile browser only.
 document.addEventListener('DOMContentLoaded', () => {
-  if (isIOS() && !isInStandaloneMode() && !_pwaDismissed) {
-    setTimeout(showPwaBanner, 2000);
+  if (isIOS() && isMobileBrowser() && !isInStandaloneMode() && !_pwaInstalled && !_pwaDismissed) {
+    setTimeout(showPwaCenterPrompt, 1800);
   }
 });
+
+// Legacy bottom-banner functions kept (unused by default) in case you want them back.
+function showPwaBanner() { /* superseded by showPwaCenterPrompt() */ }
+function hidePwaBanner() { document.getElementById('pwa-banner').classList.remove('show'); }
+function triggerPwaInstall() { triggerPwaInstallCenter(); }
+function dismissPwaBanner() { dismissPwaCenter(); }
 
 
 /* ═══════════════════════════════════════════════
@@ -1111,6 +1200,8 @@ function updateBioText() {
               (isFaceID ? 'فتح بـ Face ID' : 'فتح بالبصمة');
   const el = document.getElementById('bio-login-txt');
   if(el) el.textContent = txt;
+  const el2 = document.getElementById('unlock-bio-txt');
+  if(el2) el2.textContent = txt;
 }
 
 async function loginWithBiometric() {
@@ -1187,11 +1278,121 @@ async function manageBiometric() {
               'تم تفعيل البصمة ✓', 'success');
         initBiometricUI();
       }
-    } else if (pin !== null) {
+    } else if (pw !== null) {
       toast(T[lang].wrongPw, 'error');
     }
   }
 }
+
+
+/* ═══════════════════════════════════════════════
+   ✅ FIX 2: APP UNLOCK ON EVERY OPEN
+   A saved session keeps you logged in (no need to re-enter
+   username + password), but every time the app/PWA is opened
+   (or the tab regains focus after being hidden/in background)
+   it asks for biometric or the account password before showing data.
+   ═══════════════════════════════════════════════ */
+let _appUnlocked = false;          // unlocked for this "session" of having the tab open
+let _unlockHideTimestamp = null;   // when the tab/app was last hidden
+
+function requireUnlock() {
+  if (!session || !session.center) return; // nothing to unlock, will show login screen anyway
+  _appUnlocked = false;
+  showUnlockScreen();
+}
+
+async function showUnlockScreen() {
+  const t = T[lang];
+  set('unlock-title', lang==='en'?'Welcome back':lang==='ku'?'بەخێربێیتەوە':'مرحباً بعودتك');
+  set('unlock-sub', centerName());
+  set('unlock-pw-lbl', t.loginPwLbl||'كلمة المرور');
+  set('unlock-btn-txt', lang==='en'?'Unlock':lang==='ku'?'کردنەوە':'فتح');
+  set('unlock-switch-account', lang==='en'?'Sign out / switch account':lang==='ku'?'دەرچوون / گۆڕینی هەژمار':'تسجيل خروج / حساب آخر');
+  document.getElementById('unlock-pw').value = '';
+  document.getElementById('unlock-error').style.display = 'none';
+
+  const bioBtn = document.getElementById('unlock-bio-btn');
+  const available = await BIO.isAvailable();
+  if (available && BIO.hasRegistered()) {
+    bioBtn.style.display = '';
+    updateBioText();
+  } else {
+    bioBtn.style.display = 'none';
+  }
+
+  openModal('modal-unlock');
+
+  // Try biometric automatically once, for a fast unlock experience
+  if (available && BIO.hasRegistered()) {
+    setTimeout(async () => {
+      // Only auto-trigger if the unlock screen is still open (user hasn't typed yet)
+      if (document.getElementById('modal-unlock').classList.contains('open')) {
+        await unlockWithBiometric(true);
+      }
+    }, 350);
+  }
+}
+
+async function unlockWithBiometric(silent) {
+  const bioBtn = document.getElementById('unlock-bio-btn');
+  if (bioBtn && !silent) { bioBtn.disabled = true; bioBtn.textContent = '⏳'; }
+  const ok = await BIO.authenticate();
+  if (bioBtn) { bioBtn.disabled = false; updateBioText(); }
+  if (ok) {
+    _appUnlocked = true;
+    closeModal('modal-unlock');
+  } else if (!silent) {
+    toast(T[lang].wrongPw || 'فشل التحقق', 'error');
+  }
+}
+
+function toggleUnlockPwVisibility() {
+  const inp = document.getElementById('unlock-pw');
+  const btn = document.getElementById('unlock-eye-btn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function doUnlock() {
+  const t = T[lang];
+  const pw = document.getElementById('unlock-pw').value.trim();
+  if (!session || pw !== session.password) {
+    const el = document.getElementById('unlock-error');
+    el.textContent = t.wrongPw || 'كلمة المرور غير صحيحة';
+    el.style.display = '';
+    document.getElementById('unlock-pw').value = '';
+    return;
+  }
+  _appUnlocked = true;
+  closeModal('modal-unlock');
+}
+
+function confirmLogoutFromUnlock() {
+  const msg = lang==='en' ? 'Sign out?' : lang==='ku' ? 'دەرچوون؟' : 'تسجيل الخروج؟';
+  if (!confirm(msg)) return;
+  closeModal('modal-unlock');
+  doLogout();
+}
+
+// Re-lock the app whenever it is reopened after being backgrounded/hidden.
+// This covers: switching apps and coming back, locking/unlocking the phone,
+// reopening the installed PWA icon, or returning to the browser tab.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    _unlockHideTimestamp = Date.now();
+  } else if (document.visibilityState === 'visible') {
+    // Only re-lock if we have an active session and we're past the login screen
+    if (session && session.center && document.getElementById('screen-main').classList.contains('active')) {
+      _appUnlocked = false;
+      requireUnlock();
+    }
+  }
+});
+window.addEventListener('pageshow', () => {
+  if (session && session.center && document.getElementById('screen-main').classList.contains('active') && !_appUnlocked) {
+    requireUnlock();
+  }
+});
 
 
 /* ═══════════════════════════════════════════════
@@ -1216,6 +1417,30 @@ function startScanner() {
   const wrap = document.getElementById('scanner-wrap');
   const vid = document.getElementById('scanner-video');
   const statusEl = document.getElementById('scanner-status');
+
+  // ✅ FIX 1a: cameras require a "secure context" (HTTPS or localhost).
+  // If the page is served over plain HTTP, getUserMedia is blocked by the
+  // browser BEFORE any permission prompt — this is the most common cause
+  // of an immediate generic "error" with no camera dialog at all.
+  if (!window.isSecureContext) {
+    const msg = lang === 'en'
+      ? '⚠️ Camera needs HTTPS. Open this page via a secure (https://) link.'
+      : lang === 'ku'
+      ? '⚠️ کامێرا پێویستی بە HTTPS هەیە. ئەم پەیجە لە ڕێگەی لینکی (https://) بکەرەوە.'
+      : '⚠️ الكاميرا تحتاج رابط HTTPS آمن. افتح الصفحة عبر رابط يبدأ بـ https:// (وليس http://) ليعمل المسح.';
+    toast(msg, 'error');
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    const msg = lang === 'en'
+      ? 'Camera API not supported in this browser.'
+      : lang === 'ku'
+      ? 'وێبگەڕەکە پشتگیری کامێرا ناکات.'
+      : 'هذا المتصفح لا يدعم الوصول إلى الكاميرا.';
+    toast(msg, 'error');
+    return;
+  }
 
   wrap.classList.add('show');
   setScanStatus('جاري تحميل الكاميرا...');
@@ -1267,19 +1492,31 @@ function startScanner() {
       .catch(err => {
         console.error('getUserMedia error:', err.name, err.message);
         wrap.classList.remove('show');
-        let msg = T[lang].error;
-        if (err.name === 'NotAllowedError') {
-          msg = lang === 'en' ? 'Camera permission denied — please allow in settings' :
-                lang === 'ku' ? 'مۆڵەتی کامێرا درێژ نەدراو — ڕێکخستنەکان پشک بکەوە' :
-                'تم رفض إذن الكاميرا — يرجى السماح من الإعدادات';
-        } else if (err.name === 'NotFoundError') {
+        // ✅ FIX 1b: every known error name now has a precise, translated message
+        // instead of falling back to the generic "error" string.
+        let msg;
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          msg = lang === 'en' ? 'Camera permission denied — please allow it in your browser/phone settings' :
+                lang === 'ku' ? 'مۆڵەتی کامێرا نەدراوە — تکایە لە ڕێکخستنەکانی وێبگەڕ/مۆبایل ڕێگەی بدە' :
+                'تم رفض إذن الكاميرا — يرجى السماح به من إعدادات المتصفح أو الهاتف';
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
           msg = lang === 'en' ? 'No camera found on this device' :
-                lang === 'ku' ? 'کامێرا نەدۆزرایەوە' :
+                lang === 'ku' ? 'هیچ کامێراێک نەدۆزرایەوە لەسەر ئەم ئامێرە' :
                 'لا توجد كاميرا على هذا الجهاز';
-        } else if (err.name === 'NotReadableError') {
-          msg = lang === 'en' ? 'Camera is in use by another app' :
-                lang === 'ku' ? 'کامێرا لە لایەن برنامەیەکی تر بەکاردێت' :
-                'الكاميرا مستخدمة من تطبيق آخر';
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          msg = lang === 'en' ? 'Camera is already in use by another app' :
+                lang === 'ku' ? 'کامێرا لەلایەن بەرنامەیەکی تر بەکاردێت' :
+                'الكاميرا مستخدمة من تطبيق آخر حالياً، أغلقه وحاول مجدداً';
+        } else if (err.name === 'OverconstrainedError') {
+          msg = lang === 'en' ? 'No camera matches the required settings' :
+                lang === 'ku' ? 'هیچ کامێراێک گونجاو نییە' :
+                'لا توجد كاميرا تدعم الإعدادات المطلوبة';
+        } else if (err.name === 'SecurityError') {
+          msg = lang === 'en' ? 'Camera blocked — page must be opened via HTTPS' :
+                lang === 'ku' ? 'کامێرا بلۆک کراوە — پەیجەکە دەبێت لە ڕێگەی HTTPS بکرێتەوە' :
+                'تم حظر الكاميرا — يجب فتح الصفحة عبر رابط HTTPS آمن';
+        } else {
+          msg = (lang === 'en' ? 'Camera error: ' : lang === 'ku' ? 'هەڵەی کامێرا: ' : 'خطأ في الكاميرا: ') + (err.message || err.name || '');
         }
         toast(msg, 'error');
       });
@@ -1648,11 +1885,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if (!lang) { lang = 'ar'; localStorage.setItem('rcw_lang','ar'); }
   applyLang(lang);
 
-  // If saved session exists → skip login, go directly to main
+  // If saved session exists → go to main screen, but require unlock first (FIX 2)
   if (session && session.center) {
     enterMainScreen();
     // Refresh center data silently in background
     refreshCenterDataFromGAS();
+    // ✅ FIX 2: always require biometric/password verification on open,
+    // even though the username/password don't need to be re-typed.
+    requireUnlock();
   } else {
     show('screen-login');
     initBiometricUI();
@@ -1722,14 +1962,14 @@ function applyLang(l){
   if(document.getElementById('sb-edit-center-txt')) set('sb-edit-center-txt', t.sbEditCenter);
   set('sb-lang-hdr',t.sbLang); set('sb-theme-hdr',t.sbTheme); set('lbl-dark',t.darkMode); set('lbl-light',t.lightMode);
   if(document.getElementById('sb-logout-txt')) set('sb-logout-txt', t.logoutBtn||'تسجيل الخروج');
-  // PWA banner
-  const pwaTitle = l==='en' ? 'Install App' : l==='ku' ? 'ئەپلیکەیشن دابەزێنە' : 'تثبيت التطبيق';
-  const pwaSub = l==='en' ? 'Save to your home screen for quick access' : l==='ku' ? 'بیکە سەر شاشەی سەرەکیت بۆ دەستگەیشتنی خێرا' : 'احفظه على شاشتك الرئيسية للوصول السريع';
-  set('pwa-title', pwaTitle); set('pwa-sub', pwaSub);
-  set('pwa-install-txt', l==='en'?'Install':l==='ku'?'دابەزاندن':'تثبيت');
-  set('pwa-later-txt', l==='en'?'Later':l==='ku'?'دواتر':'لاحقاً');
-  const iosEl = document.getElementById('ios-instructions');
-  if(iosEl) iosEl.innerHTML = l==='en' ? `Tap <span>⬆️ Share</span> then <span>Add to Home Screen</span>` :
+  // Center-screen PWA prompt
+  const pwacTitle = l==='en' ? 'Install the app on your phone' : l==='ku' ? 'ئەپلیکەیشن لەسەر مۆبایلت دابین بکە' : 'ثبّت التطبيق على هاتفك';
+  const pwacSub = l==='en' ? 'Quick access without a browser, faster and easier' : l==='ku' ? 'دەستگەیشتنی خێرا بەبێ وێبگەڕ' : 'للوصول السريع بدون متصفح، وتجربة أسرع وأسهل';
+  set('pwac-title', pwacTitle); set('pwac-sub', pwacSub);
+  set('pwac-install-txt', l==='en'?'Install Now':l==='ku'?'ئێستا دابەزێنە':'تثبيت الآن');
+  set('pwac-later-txt', l==='en'?'Not Now':l==='ku'?'ئێستا نا':'ليس الآن');
+  const pwacIosEl = document.getElementById('pwac-ios-instructions');
+  if(pwacIosEl) pwacIosEl.innerHTML = l==='en' ? `Tap <span>⬆️ Share</span> then <span>Add to Home Screen</span>` :
     l==='ku' ? `بزرە سەر <span>⬆️ هاوبەشکردن</span> پاشان <span>زیادکردن بۆ شاشەی سەرەکی</span>` :
     `اضغط على <span>⬆️ مشاركة</span> ثم اختر <span>إضافة إلى الشاشة الرئيسية</span>`;
 }
@@ -1807,6 +2047,7 @@ async function doGasLogin() {
     if (data.missingFields && data.missingFields.length > 0) {
       showCompleteInfoModal(data.missingFields);
     } else {
+      _appUnlocked = true; // fresh login counts as unlocked
       enterMainScreen();
     }
 
@@ -1816,6 +2057,7 @@ async function doGasLogin() {
     if (session && session.username === username && session.password === password) {
       toast('⚠️ وضع غير متصل — تم الدخول من الجلسة المحفوظة', 'error');
       setLoginLoading(false);
+      _appUnlocked = true;
       enterMainScreen();
     } else {
       showLoginError(t.error || 'تعذّر الاتصال بالخادم');
@@ -1911,6 +2153,7 @@ async function saveCompleteInfo() {
       saveSession({ ...session, center: newCenter });
       closeModal('modal-complete-info');
       toast(t.saved||'تم الحفظ ✓','success');
+      _appUnlocked = true;
       enterMainScreen();
     } else {
       toast(t.error||'حدث خطأ','error');
@@ -1921,6 +2164,7 @@ async function saveCompleteInfo() {
     saveSession({ ...session, center: newCenter });
     closeModal('modal-complete-info');
     toast('⚠️ تم الحفظ محلياً','success');
+    _appUnlocked = true;
     enterMainScreen();
   }
 
@@ -1942,6 +2186,7 @@ function doLogout() {
   // Keep lang & theme
   // Reset state
   curCarData = null; curCarId = null; curMaintKey = null;
+  _appUnlocked = false;
   // Show login
   show('screen-login');
   document.getElementById('login-username').value = '';
@@ -2695,6 +2940,7 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click', e=>{
     if(e.target===o){
       if(o.id==='modal-annual') closeAnnualModal();
+      else if(o.id==='modal-unlock') { /* unlock cannot be dismissed by backdrop click */ }
       else closeModal(o.id);
     }
   });
