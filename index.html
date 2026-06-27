@@ -929,30 +929,34 @@ textarea.form-control{resize:none}
   } catch(e) {}
 
   // Register lightweight Service Worker (inline, for caching)
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-      const CACHE = 'rcw-v1';
-      self.addEventListener('install', e => {
-        self.skipWaiting();
-      });
-      self.addEventListener('activate', e => {
-        e.waitUntil(caches.keys().then(keys =>
-          Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-        ));
-      });
-      self.addEventListener('fetch', e => {
-        if (e.request.method !== 'GET') return;
-        e.respondWith(
-          fetch(e.request).catch(() => caches.match(e.request))
-        );
-      });
-    `;
-    try {
-      const swBlob = new Blob([swCode], { type: 'application/javascript' });
-      const swURL = URL.createObjectURL(swBlob);
-      navigator.serviceWorker.register(swURL).catch(() => {});
-    } catch(e) {}
+  // استبدل دالة initPWA() بهذا فقط:
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+
+// باقي كود PWA يبقى كما هو
+let _pwaPrompt = null;
+let _pwaInstalled = localStorage.getItem('rcw_pwa_installed') === 'true';
+let _pwaDismissed = localStorage.getItem('rcw_pwa_dismissed') === 'true';
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  if (!_pwaInstalled && !_pwaDismissed && isMobileBrowser() && !isInStandaloneMode()) {
+    setTimeout(showPwaCenterPrompt, 1500);
   }
+});
+
+window.addEventListener('appinstalled', () => {
+  _pwaInstalled = true;
+  localStorage.setItem('rcw_pwa_installed', 'true');
+  hidePwaCenterPrompt();
+  toast('✅ تم تثبيت التطبيق', 'success');
+});
 })();
 
 // PWA install prompt state
